@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('lessons', function (Blueprint $t) {
-            $t->id();
-            $t->string('slug')->unique();
-            $t->string('title');
-            $t->string('level', 4); // A0|A1
-            $t->string('status', 16)->default('published');
-            $t->json('meta')->default(DB::raw('(JSON_OBJECT())'));
-            $t->timestamps();
+        Schema::create('lessons', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->text('description');
+            $table->string('image');
+            $table->unsignedInteger('sort')->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
         });
     }
 

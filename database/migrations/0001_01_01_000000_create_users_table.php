@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $t) {
             $t->id();
             $t->string('telegram_id')->unique();
-            $t->string('telegram_photo_url');
+            $t->string('telegram_photo_url')->default('');
             $t->string('name')->nullable();
-            $t->string('locale', 5)->default('ru');
-            $t->string('level', 4)->nullable(); // A0|A1
-            $t->unsignedInteger('xp')->default(0);
-            $t->unsignedInteger('streak')->default(0);
-            $t->timestampTz('last_active_at')->nullable();
-            $t->timestampsTz();
+            $t->integer('xp')->default(0);
+            $t->boolean('status')->default(false);
+            $t->enum('lang', ['ru', 'tt'])->default('ru');
+            $t->enum('level', ['junior', 'middle', 'senior'])->default('junior');
+            $t->unsignedTinyInteger('goal')->default(10); // 10,15,20,25,30
+            $t->timestamps();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
