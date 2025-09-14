@@ -43,7 +43,7 @@ class UserServices
         $lessons = DB::table('lessons')
             ->where('is_active', true)
             ->orderBy('sort', 'asc')
-            ->select(['id', 'name', 'image', 'sort'])
+            ->select(['id', 'name', 'image', 'sort', 'description'])
             ->get();
 
         $subLessonsByLesson = DB::table('sub_lessons')
@@ -130,6 +130,7 @@ class UserServices
             'id' => (int)$chosen->id,
             'name' => $chosen->name,
             'image' => $chosen->image,
+            'description' => $chosen->description,
         ];
 
         $subs = $subLessonsByLesson->get($chosen->id, collect());
@@ -146,9 +147,9 @@ class UserServices
         $subLessons = [];
         $unpassed = [];
         $cats = [
-            'grammar' => ['label' => 'Грамматика', 'sum' => 0, 'cnt' => 0, 'allPassed' => true],
-            'listening' => ['label' => 'Аудирование', 'sum' => 0, 'cnt' => 0, 'allPassed' => true],
-            'writing' => ['label' => 'Письмо', 'sum' => 0, 'cnt' => 0, 'allPassed' => true],
+//            'grammar' => ['label' => 'Грамматика', 'sum' => 0, 'cnt' => 0, 'allPassed' => true],
+//            'listening' => ['label' => 'Аудирование', 'sum' => 0, 'cnt' => 0, 'allPassed' => true],
+//            'writing' => ['label' => 'Письмо', 'sum' => 0, 'cnt' => 0, 'allPassed' => true],
         ];
 
         foreach ($subs as $s) {
@@ -158,9 +159,11 @@ class UserServices
             $passed = $percent >= 1;
             $catKey = $categorize($s->name);
 
-            $cats[$catKey]['sum'] += $percent;
-            $cats[$catKey]['cnt'] += 1;
-            if (!$passed) $cats[$catKey]['allPassed'] = false;
+            if (isset($cats[$catKey])) {
+                $cats[$catKey]['sum'] += $percent ?? 0;
+                $cats[$catKey]['cnt'] += 1;
+                if (!$passed) $cats[$catKey]['allPassed'] = false;
+            }
 
             $item = [
                 'id' => (int)$s->id,
