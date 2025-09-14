@@ -65,22 +65,64 @@ class UserController extends Controller
         );
     }
 
+    private function clean(string $s): string
+    {
+        // Убираем символы, ломающие вёрстку, и лишние пробелы/переводы строк
+        $s = preg_replace('/[\\\\\\/<>{}\\[\\]`"“”‘’]/u', '', $s ?? '');
+        $s = preg_replace('/\\s+/u', ' ', $s);
+        return trim($s);
+    }
+
+    private function callLLM(array $payload)
+    {
+        $payload['api_key'] = 'chad-166bf1f2add642eb8f43a383f5e781699hcxvn91';
+
+        $resp = Http::timeout(20)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post('https://ask.chadgpt.ru/api/public/gpt-4o-mini', $payload);
+
+        if (!$resp->ok()) {
+            return ['error' => 'LLM request failed', 'status' => $resp->status(), 'body' => $resp->body()];
+        }
+
+        return $resp->json(); // ожидается, что вернётся { "text": "..."} или подобное
+    }
+
     public function answer(Request $request): JsonResponse
     {
-//        $correct = $request->get('correct');
-//        $inCorrect = $request->get('user');
-//
-//        $data = [
-//            "message" => "Ты — строгий лингвист-проверяющий перевода с русского на татарский. Объясни за 1–2 предложения по-русски, почему ответ пользователя неверен и почему правильный вариант верен. Дано: правильный ответ: $correct; ответ пользователя: $inCorrect. Пиши простым текстом без кавычек, скобок, бэктиков, эмодзи и символов \ / < > { } [ ]. Не раскрывай дополнительные синонимы, не добавляй примеры, не меняй регистр слов. Фокусируйся на конкретной причине ошибки: орфография (ә ө ү ң), падеж/аффиксы, число/лицо, вежливая форма, лексическое несоответствие, стиль/регистр. Если ответы совпадают, коротко подтвердить верность и указать нюанс нормы.",
-//            "api_key" => 'chad-166bf1f2add642eb8f43a383f5e781699hcxvn91'
-//        ];
-//
-//        $request = Http::post('https://ask.chadgpt.ru/api/public/gpt-4o-mini', $data)->json();
-
-        return response()->json([
-//            'message' => $request['response']
-            'message' => 123123
+        $data = $request->validate([
+            'user'     => 'required|string|max:120',
+            'correct'  => 'required|string|max:120',
+            'question' => 'nullable|string|max:200',
         ]);
+
+        if (trim($data['user']) === trim($data['correct'])) {
+            return response()->json([
+                'text' => 'Ваш вариант верен. Совпадает с нормой написания и формой.'
+            ]);
+        }
+
+        $system = "Ты строгий лингвист по татарскому языку.\n"
+            . "Объясни по-русски за 1–2 предложения, почему ответ пользователя неверен и почему верен правильный.\n"
+            . "Пиши простым текстом без кавычек, скобок, бэктиков и символов \\ / < > { } [ ].\n"
+            . "Фокусируйся на причине: орфография (ә ө ү җ ң һ), аффикс/падеж, число/лицо, вежливая форма, лексика/стиль.\n"
+            . "Если ответы совпадают — кратко подтвердить верность.";
+
+        $message = "correct: {$data['correct']}\n"
+            . "user: {$data['user']}\n"
+            . "source_ru: " . ($data['question'] ?? '');
+
+        $payload = [
+            'message'     => $message,
+            'history'     => [ ['role' => 'system', 'content' => $system] ],
+            'temperature' => 0.2,
+            'max_tokens'  => 80,
+        ];
+
+        $res  = $this->callLLM($payload);
+        $text = is_array($res) ? ($res['text'] ?? ($res['output'] ?? '')) : '';
+
+        return response()->json(['message' => $this->clean($text)]);
     }
 
     public function pastTasks(Request $request): JsonResponse
