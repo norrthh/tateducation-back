@@ -120,7 +120,7 @@ class UserController extends Controller
         ];
 
         $res  = $this->callLLM($payload);
-        $text = is_array($res) ? ($res['text'] ?? ($res['output'] ?? '')) : '';
+        $text = $res['response'];
 
         return response()->json(['message' => $this->clean($text)]);
     }
